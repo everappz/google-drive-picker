@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Drive Picker</title>
+  <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+</head>
+<body onload="onApiLoad()">
+  <h2>Loading Google Drive Picker...</h2>
+
+  <script>
+    function getParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    const developerKey = getParam("key");
+    const appId = getParam("app_id");
+    const accessToken = getParam("access_token");
+    const allowFolders = getParam("folders") === "true"; // "true" to allow folder selection
+    const mimeTypes = getParam("mimeTypes"); // e.g. "application/pdf,image/png", or empty for all
+
+    function onApiLoad() {
+      gapi.load('picker', createPicker);
+    }
+
+    function createPicker() {
+      if (!accessToken) {
+        alert("Missing access token");
+        return;
+      }
+
+      const view = new google.picker.DocsView();
+
+      // Restrict MIME types if specified
+      if (mimeTypes) {
+        view.setMimeTypes(mimeTypes);
+      }
+
+      // Enable folder selection if requested
+      if (allowFolders) {
+        view.setIncludeFolders(true);
+        view.setSelectFolderEnabled(true);
+      }
+
+      const picker = new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(accessToken)
+        .setDeveloperKey(developerKey)
+        .setAppId(appId)
+        .setCallback(pickerCallback)
+        .build();
+
+      picker.setVisible(true);
+    }
+
+    function pickerCallback(data) {
+      if (data.action === google.picker.Action.PICKED) {
+        const doc = data.docs[0];
+
+        const result = {
+          id: doc.id,
+          name: doc.name,
+          mimeType: doc.mimeType,
+          url: doc.url
+        };
+
+        // Send result back to native app via WKScriptMessageHandler
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pickerHandler) {
+          window.webkit.messageHandlers.pickerHandler.postMessage(result);
+        } else {
+          console.log("No WKWebView message handler found");
+        }
+      } else if (data.action === google.picker.Action.CANCEL) {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pickerHandler) {
+          window.webkit.messageHandlers.pickerHandler.postMessage({ cancelled: true });
+        }
+      }
+    }
+  </script>
+</body>
+</html>
