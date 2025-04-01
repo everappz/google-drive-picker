@@ -42,6 +42,7 @@
 
       const picker = new google.picker.PickerBuilder()
         .addView(view)
+	  	.enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
         .setOAuthToken(accessToken)
         .setDeveloperKey(developerKey)
         .setAppId(appId)
