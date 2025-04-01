@@ -52,29 +52,36 @@
       picker.setVisible(true);
     }
 
-    function pickerCallback(data) {
-      if (data.action === google.picker.Action.PICKED) {
-        const doc = data.docs[0];
+	function pickerCallback(data) {
+	  if (data.action === google.picker.Action.PICKED) {
+	    // If MULTISELECT_ENABLED is active, data.docs will contain multiple items
+	    const results = data.docs.map(doc => ({
+	      id: doc.id,
+	      name: doc.name,
+	      mimeType: doc.mimeType,
+	      url: doc.url
+	    }));
 
-        const result = {
-          id: doc.id,
-          name: doc.name,
-          mimeType: doc.mimeType,
-          url: doc.url
-        };
-
-        // Send result back to native app via WKScriptMessageHandler
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pickerHandler) {
-          window.webkit.messageHandlers.pickerHandler.postMessage(result);
-        } else {
-          console.log("No WKWebView message handler found");
-        }
-      } else if (data.action === google.picker.Action.CANCEL) {
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pickerHandler) {
-          window.webkit.messageHandlers.pickerHandler.postMessage({ cancelled: true });
-        }
-      }
-    }
+	    // Send the array of selected files to the native app
+	    if (
+	      window.webkit &&
+	      window.webkit.messageHandlers &&
+	      window.webkit.messageHandlers.pickerHandler
+	    ) {
+	      window.webkit.messageHandlers.pickerHandler.postMessage({ files: results });
+	    } else {
+	      console.log("No WKWebView message handler found");
+	    }
+	  } else if (data.action === google.picker.Action.CANCEL) {
+	    if (
+	      window.webkit &&
+	      window.webkit.messageHandlers &&
+	      window.webkit.messageHandlers.pickerHandler
+	    ) {
+	      window.webkit.messageHandlers.pickerHandler.postMessage({ cancelled: true });
+	    }
+	  }
+	}
   </script>
 </body>
 </html>
